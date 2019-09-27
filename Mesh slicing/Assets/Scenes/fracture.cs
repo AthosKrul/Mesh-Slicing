@@ -35,8 +35,8 @@ public struct FasterVector3: IEquatable<FasterVector3>
     }
     public bool Equals(FasterVector3 vector3)
     {
-        if (this.x.Equals(vector3.x) && this.y.Equals(vector3.y))
-            return this.z.Equals(vector3.z);
+        if (Mathf.Approximately(x, vector3.x) && Mathf.Approximately(y, vector3.y) && Mathf.Approximately(y, vector3.y) )           
+            return true;
         return false;
     }
     public override int GetHashCode()
@@ -136,17 +136,19 @@ public class fracture : MonoBehaviour
         //        Gizmos.DrawSphere(sphere.transform.TransformPoint(item), 0.005f);
         //    }
         //}
-        //Gizmos.color = Color.blue;
-        //Gizmos.DrawSphere(mid1, 0.005f);
-        //Gizmos.DrawSphere(mid2, 0.005f);
-        //Gizmos.color = Color.white;
-        //Gizmos.color = Color.red;
-        //Gizmos.DrawSphere(p, 0.02f);
-        //Gizmos.color = Color.white;
+        Gizmos.color = Color.blue;
+        Gizmos.DrawSphere(mid1.vector3, 0.005f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(mid2.vector3, 0.005f);
+        Gizmos.color = Color.white;
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(p, 0.02f);
+        Gizmos.color = Color.white;
     }
     public Dictionary<FasterVector3, int> pairs = new Dictionary<FasterVector3, int>();
     public Dictionary<FasterVector3, int> pairs2 = new Dictionary<FasterVector3, int>();
     public bool useExistingVertixes;
+    int ii = 0;
     void Update() {
 
 
@@ -159,7 +161,32 @@ public class fracture : MonoBehaviour
             UnityEngine.Debug.Log(s.ElapsedMilliseconds);
         
         }
+        if(Input.GetKeyDown(KeyCode.N) && ii < m.Count - 1) {       
+            
+            //int a = m.ElementAt(ii).Key;
+            //int a2 = m.ElementAt(ii + 1).Key;
+            //FasterVector3 b = fillFacePoints.ElementAt(a).Key;
+            //FasterVector3 b2 = fillFacePoints.ElementAt(a2).Key;
+
+            //if(!b.Equals(b2)) {
+            //    point = new FasterVector3(p);
+            //    CheckContains(true);
+            //    point = b;
+            //    CheckContains(true);
+            //    point = b2;
+            //    CheckContains(true);
+            //    CreateMeshes(meshes[0].GetComponent<MeshFilter>().mesh, meshes[0]);
+              
+            //    mid1 = b;
+            //    mid2 = b2;
+            //}
+            //ii++;
+            //UnityEngine.Debug.Log(b.Equals(b2) +" "+ b2.vector3.ToString("F6") + " "+b.vector3.ToString("F6"));
+            ////mid1 = b;
+            ////mid2 = b2;
+        }
     }
+    List<KeyValuePair<int, float>> m;
     FasterVector3 point;
 
     //bool firstList;
@@ -168,11 +195,14 @@ public class fracture : MonoBehaviour
         if(firstList) {
             if (!pairs.ContainsKey(point) || !useExistingVertixes)
             {
-                pairs.Add(point,z);              
+                pairs.Add(point, z);
                 trisList.Add(z);
                 z++;
             }
-           else trisList.Add(pairs[point]);
+            else {
+              //  Debug.Log(pairs.e)
+                trisList.Add(pairs[point]);
+            }
         }
         else {
             if (!pairs2.ContainsKey(point) || !useExistingVertixes)
@@ -187,16 +217,35 @@ public class fracture : MonoBehaviour
             }
         }
     }
-    void FillFacePointsCheckContains() {
-
+    void FillFacePointsCheckContains(bool firstList) {
+        if (firstList)
+        {
+            if (!fillFacePoints.ContainsKey(point))
+            {
+                fillFacePoints.Add(point, 0);
+            }            
+        }
+        else {
+            if (!fillFacePoints2.ContainsKey(point))
+            {
+                fillFacePoints2.Add(point, 0);            
+            }   
+        }
     }
-  
+    Dictionary<FasterVector3,int> fillFacePoints = new Dictionary<FasterVector3,int>();
+    Dictionary<FasterVector3,int> fillFacePoints2 = new Dictionary<FasterVector3,int>();
     void FirstSliceMethod() {
         newPlane = new Plane(transform.rotation * Vector3.up, -Vector3.Dot(transform.up, transform.position));
         foreach (var mesh in meshes)
         {
 
-
+            z = z2 = 0;
+            fillFacePoints = new Dictionary<FasterVector3, int>();
+            fillFacePoints2 = new Dictionary<FasterVector3, int>();
+            verticesList = new List<FasterVector3>();
+            verticesList2 = new List<FasterVector3>();
+            pairs = new Dictionary<FasterVector3, int>();
+            pairs2 = new Dictionary<FasterVector3, int>();
             vertices = mesh.GetComponent<MeshFilter>().mesh.vertices;
             //foreach (var vert in vertices)
             //{
@@ -210,8 +259,7 @@ public class fracture : MonoBehaviour
             verticesList = new List<FasterVector3>();
             verticesList2 = new List<FasterVector3>();
 
-            List<FasterVector3> fillFacePoints = new List<FasterVector3>();
-            List<FasterVector3> fillFacePoints2 = new List<FasterVector3>();
+           
 
 
             FasterVector3 pointB = new FasterVector3(); //point bellow
@@ -226,9 +274,9 @@ public class fracture : MonoBehaviour
             FasterVector3 transformPosition =new FasterVector3( transform.position);
             for (int i = 0; i < triangles.Length; i += 3)
             {
-                var i0V = sphere.transform.TransformPoint(vertices[triangles[i]]);
-                var i1V = sphere.transform.TransformPoint(vertices[triangles[i + 1]]);
-                var i2V = sphere.transform.TransformPoint(vertices[triangles[i + 2]]);
+                var i0V = mesh.transform.TransformPoint(vertices[triangles[i]]);
+                var i1V = mesh.transform.TransformPoint(vertices[triangles[i + 1]]);
+                var i2V = mesh.transform.TransformPoint(vertices[triangles[i + 2]]);
                 FasterVector3 i0 = new FasterVector3(i0V);
                 FasterVector3 i1 = new FasterVector3(i1V);
                 FasterVector3 i2 = new FasterVector3(i2V);
@@ -291,8 +339,10 @@ public class fracture : MonoBehaviour
                     point = i1;
                     CheckContains(   true);
 
-                    fillFacePoints.Add(p);
-                    fillFacePoints.Add(p2);
+                    point = p;
+                    FillFacePointsCheckContains(true);
+                    point = p2;
+                    FillFacePointsCheckContains(true);
                 }
                 if (dist0 <= 0 &&
                 dist1 > 0 &&
@@ -322,8 +372,10 @@ public class fracture : MonoBehaviour
                     point = i1;
                     CheckContains( false);
 
-                    fillFacePoints2.Add(p);
-                    fillFacePoints2.Add(p2);
+                    point = p;
+                    FillFacePointsCheckContains(false);
+                    point = p2;
+                    FillFacePointsCheckContains(false);
                 }
                 #region one point bellow
                 if ((dist0 > 0 &&
@@ -394,8 +446,10 @@ public class fracture : MonoBehaviour
                        CheckContains( true);
                     }
 
-                    fillFacePoints.Add(p);
-                    fillFacePoints.Add(p2);
+                    point = p;
+                    FillFacePointsCheckContains(true);
+                    point = p2;
+                    FillFacePointsCheckContains(true);
                 }
                 #endregion
                 #region one point above
@@ -473,8 +527,10 @@ public class fracture : MonoBehaviour
                         CheckContains( false);
                     
                     }
-                    fillFacePoints2.Add(p);
-                    fillFacePoints2.Add(p2);
+                    point = p;
+                    FillFacePointsCheckContains(false);
+                    point = p2;
+                    FillFacePointsCheckContains(false);
                 }
                 #endregion
 
@@ -574,8 +630,10 @@ public class fracture : MonoBehaviour
                     mid1 = p;
                     mid2 = p2;
 
-                    fillFacePoints.Add(p);
-                    fillFacePoints.Add(p2);
+                    point = p;
+                    FillFacePointsCheckContains(true);
+                    point = p2;
+                    FillFacePointsCheckContains(true);
                 }
                 #endregion
 
@@ -672,9 +730,11 @@ public class fracture : MonoBehaviour
                         point = p2;
                         CheckContains( false);
                     }
-                    fillFacePoints2.Add(p);
-                    fillFacePoints2.Add(p2);
-                    //z2 = AddTris2(z2, 2);
+                    point = p;
+                    FillFacePointsCheckContains(false);
+                    point = p2;
+                    FillFacePointsCheckContains(false);
+
                 }
                 #endregion
 
@@ -682,10 +742,11 @@ public class fracture : MonoBehaviour
             Fill(fillFacePoints, true);
             Fill(fillFacePoints2, false);
 
-            UnityEngine.Debug.Log(vertices.Length + " " + triangles.Length);
-          
+            //            UnityEngine.Debug.Log(vertices.Length + " " + triangles.Length);
 
             CreateMeshes(mesh.GetComponent<MeshFilter>().mesh, mesh);
+
+
         }
     }
 
@@ -716,15 +777,15 @@ public class fracture : MonoBehaviour
         }
         return z;
     }
-    void Fill(List<FasterVector3> fillFacePoints, bool firstObj)
+    void Fill(Dictionary<FasterVector3,int> fillFacePoints, bool firstObj)
     {
 
-        float xMax = fillFacePoints.Max(x => x.x);
-        float xMin = fillFacePoints.Min(x => x.x);
-        float yMax = fillFacePoints.Max(y => y.y);
-        float yMin = fillFacePoints.Min(y => y.y);
-        float zMax = fillFacePoints.Max(z => z.z);
-        float zMin = fillFacePoints.Min(z => z.z);
+        float xMax = fillFacePoints.Max(x => x.Key.x);
+        float xMin = fillFacePoints.Min(x => x.Key.x);
+        float yMax = fillFacePoints.Max(y => y.Key.y);
+        float yMin = fillFacePoints.Min(y => y.Key.y);
+        float zMax = fillFacePoints.Max(z => z.Key.z);
+        float zMin = fillFacePoints.Min(z => z.Key.z);
 
         FasterVector3 centerPoint = new FasterVector3(xMin + (xMax - xMin) / 2.0f, yMin + (yMax - yMin) / 2.0f, zMin + (zMax - zMin) / 2.0f);
         p = centerPoint.vector3;
@@ -733,27 +794,73 @@ public class fracture : MonoBehaviour
         Vector3 one = new Vector3(1, 0, 0);
         for (int i = 0; i < fillFacePoints.Count; i++)
         {
-            positions.Add(i, Vector3.SignedAngle(centerPoint.vector3, fillFacePoints[i].vector3, one));
+            positions.Add(i, Vector3.SignedAngle(centerPoint.vector3, fillFacePoints.ElementAt(i).Key.vector3, transform.rotation*transform.up));
         }
-        positions.OrderBy(x => x.Value);
-        for (int i = 0; i < positions.Count - 1; i++)
+        m= positions.OrderBy(x => x.Value).ToList();
+
+        for (int i = 0; i < m.Count-1; i++)
         {
-            int a = positions.ElementAt(i).Key;
-            int a2 = positions.ElementAt(i + 1).Key;
-            FasterVector3 b = fillFacePoints[a];
-            FasterVector3 b2 = fillFacePoints[a2];
-           
-            point = b2;
-            CheckContains(firstObj);
-            point = centerPoint;
-            CheckContains(firstObj);
-            point = b;
-            CheckContains(firstObj);
-           
+            int a = m.ElementAt(i).Key;
+            int a2 = m.ElementAt(i + 1).Key;
+            FasterVector3 b = fillFacePoints.ElementAt(a).Key;
+            FasterVector3 b2 = fillFacePoints.ElementAt(a2).Key;
+
+            if (!b.Equals(b2))
+            {
+                if(firstObj) {
+                    point = new FasterVector3(p);
+                    CheckContains(firstObj);
+                    point = b;
+                    CheckContains(firstObj);
+                    point = b2;
+                    CheckContains(firstObj);
+                }
+                else
+                {
+                    point = new FasterVector3(p);
+                    CheckContains(false);
+                    point = b2;
+                    CheckContains(false);
+                    point = b;
+                    CheckContains(false);
+                  
+                }
+
+            }
+        }
+        int aa = m.ElementAt(m.Count - 1).Key;
+        int aa2 = m.ElementAt(0).Key;
+        FasterVector3 bb = fillFacePoints.ElementAt(aa).Key;
+        FasterVector3 bb2 = fillFacePoints.ElementAt(aa2).Key;
+
+        if (!bb.Equals(bb2))
+        {
+            if (firstObj)
+            {
+                point = new FasterVector3(p);
+                CheckContains(firstObj);
+                point = bb;
+                CheckContains(firstObj);
+                point = bb2;
+                CheckContains(firstObj);
+            }
+            else
+            {
+                point = new FasterVector3(p);
+                CheckContains(false);
+                point = bb2;
+                CheckContains(false);
+                point = bb;
+                CheckContains(false);
+
+            }
+
         }
     }
 
     void CreateMeshes(Mesh mesh,Transform parent) {
+
+
         mesh.Clear();
         mesh.ClearBlendShapes();
         foreach (var item in pairs)
@@ -774,6 +881,9 @@ public class fracture : MonoBehaviour
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
         mesh.RecalculateTangents();
+        Destroy( parent.GetComponent<MeshCollider>());
+        var meshCol = parent.gameObject.AddComponent<MeshCollider>();
+        meshCol.convex = true;
 
         GameObject secondMesh = Instantiate( mesh2, parent.position,Quaternion.identity);
         var meshFilter = secondMesh.GetComponent<MeshFilter>();
@@ -786,8 +896,8 @@ public class fracture : MonoBehaviour
         {
             verticesList2.Add(item.Key);
         }
-        UnityEngine.Debug.Log(verticesList.Count + " " + trisList.Count);
-        UnityEngine.Debug.Log(verticesList2.Count + " " + trisList2.Count);
+        //UnityEngine.Debug.Log(verticesList.Count + " " + trisList.Count);
+        //UnityEngine.Debug.Log(verticesList2.Count + " " + trisList2.Count);
 
         meshFilter.mesh.vertices = FasterVector3.ToArray(verticesList2);
         meshFilter.mesh.triangles = trisList2.ToArray();
@@ -801,6 +911,8 @@ public class fracture : MonoBehaviour
         meshFilter.mesh.RecalculateBounds();
         meshFilter.mesh.RecalculateNormals();
         meshFilter.mesh.RecalculateTangents();
+        meshCol=secondMesh.AddComponent<MeshCollider>();
+        meshCol.convex = true;
     }
 
     public Vector3 p = Vector3.zero;
