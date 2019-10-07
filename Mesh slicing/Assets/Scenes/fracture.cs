@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using System.Diagnostics;
 using System;
+using EzySlice;
 
 public class fracture : MonoBehaviour 
 {
@@ -32,7 +33,7 @@ public class fracture : MonoBehaviour
 
     public List<Transform> meshes;
     public GameObject mesh2;
-    Plane newPlane;
+    UnityEngine.Plane newPlane;
     List<int> trisList = new List<int>();
     List<int> trisList2 = new List<int>();
     void Start() {
@@ -70,6 +71,7 @@ public class fracture : MonoBehaviour
     public Dictionary<Vector3, int> pairs2 = new Dictionary<Vector3, int>();
     public bool useExistingVertixes;
     int ii = 0;
+    public Material cutMaterial;
     void Update() {
 
 
@@ -78,6 +80,7 @@ public class fracture : MonoBehaviour
             Stopwatch s = new Stopwatch();
             s.Start();
             FirstSliceMethod();
+            //var x=SlicerExtensions.SliceInstantiate(meshes[0].gameObject, transform.position, transform.rotation * Vector3.up,cutMaterial );
             s.Stop();
             UnityEngine.Debug.Log(s.ElapsedMilliseconds);
         
@@ -112,32 +115,25 @@ public class fracture : MonoBehaviour
 
     //bool firstList;
     List<Vector2> uvs = new List<Vector2>();
+    List<Vector2> uvs2 = new List<Vector2>();
+    List<Vector3> points = new List<Vector3>();
+    List<Vector3> points2 = new List<Vector3>();
     int z = 0, z2 = 0;
     void CheckContains(bool firstList) {
         if(firstList) {
-            if (!pairs.ContainsKey(point) || !useExistingVertixes)
-            {
-                pairs.Add(point, z);        
-                trisList.Add(z);
-                z++;
-            }
-            else {
-              //  Debug.Log(pairs.e)
-                trisList.Add(pairs[point]);
-            }
+            points.Add(point);
+            uvs.Add(uvPoint);             
+            trisList.Add(z);
+            z++;
+          
         }
         else {
-            if (!pairs2.ContainsKey(point) || !useExistingVertixes)
-            {
-               
-                pairs2.Add(point, z2);
-                trisList2.Add(z2);
-                z2++;
-            }
-            else
-            {
-                trisList2.Add(pairs2[point]);
-            }
+
+            points2.Add(point);
+            uvs2.Add(uvPoint);
+            trisList2.Add(z2);
+            z2++;
+           
         }
     }
     void FillFacePointsCheckContains(bool firstList) {
@@ -157,12 +153,16 @@ public class fracture : MonoBehaviour
     }
     Dictionary<Vector3,int> fillFacePoints = new Dictionary<Vector3,int>();
     Dictionary<Vector3,int> fillFacePoints2 = new Dictionary<Vector3,int>();
+    Vector2[] initialUVs;
+    Vector2 uvPoint;
     void FirstSliceMethod() {
-        newPlane = new Plane(transform.rotation * Vector3.up, -Vector3.Dot(transform.up, transform.position));
+        newPlane = new UnityEngine.Plane(transform.rotation * Vector3.up, -Vector3.Dot(transform.up, transform.position));
         foreach (var mesh in meshes)
         {
 
             z = z2 = 0;
+            points = new List<Vector3>();
+            points2 = new List<Vector3>();
             fillFacePoints = new Dictionary<Vector3, int>();
             fillFacePoints2 = new Dictionary<Vector3, int>();
             verticesList = new List<Vector3>();
@@ -195,12 +195,18 @@ public class fracture : MonoBehaviour
             Vector3 pointA = new Vector3();//point above 
 
             Vector3 transformPosition =transform.position;
+            initialUVs = mesh.GetComponent<MeshFilter>().mesh.uv;
+            uvs = new List<Vector2>();
+            uvs2 = new List<Vector2>();
             for (int i = 0; i < triangles.Length; i += 3)
             {
                 var i0 = mesh.transform.TransformPoint(vertices[triangles[i]]);
                 var i1 = mesh.transform.TransformPoint(vertices[triangles[i + 1]]);
                 var i2 = mesh.transform.TransformPoint(vertices[triangles[i + 2]]);
-             
+                
+                var uv0= mesh.transform.TransformPoint(initialUVs[triangles[i]]);
+                var uv1 = mesh.transform.TransformPoint(initialUVs[triangles[i+1]]);
+                var uv2 = mesh.transform.TransformPoint(initialUVs[triangles[i+2]]);
 
                 float dist0 = newPlane.GetDistanceToPoint(i0);
                 float dist1 = newPlane.GetDistanceToPoint(i1);
@@ -210,10 +216,13 @@ public class fracture : MonoBehaviour
                     dist1 <= 0 &&
                     dist2 <= 0)
                 {
+                    uvPoint = uv0;
                     point = i0;
                     CheckContains(true);
+                    uvPoint = uv1;
                     point = i1;
-                   CheckContains(  true);
+                    CheckContains(  true);
+                    uvPoint = uv2;
                     point = i2;
                     CheckContains(  true);
                     
@@ -224,10 +233,13 @@ public class fracture : MonoBehaviour
                     dist2 > 0)
                 {
                     //continue;
+                    uvPoint = uv0;
                     point = i0;
                     CheckContains(  false);
+                    uvPoint = uv1;
                     point = i1;
                    CheckContains(  false);
+                    uvPoint = uv2;
                     point = i2;
                     CheckContains(  false);
                 }
@@ -241,10 +253,14 @@ public class fracture : MonoBehaviour
                     float t = Vector3.Dot(transform.position - i0, -transform.up) / Vector3.Dot(LineForward, -transform.up);
                     Vector3 p = i0 + LineForward * t;
 
+
+                    uvPoint = p;
                     point = p;
                     CheckContains(   true);
+                    //uvPoint= uv1;
                     point = i1;
                     CheckContains(   true);
+                    //uvPoint= uv2;
                     point = i2;
                     CheckContains(  true);
 
@@ -253,12 +269,16 @@ public class fracture : MonoBehaviour
                     float t2 = Vector3.Dot(transform.position - i0, -transform.up) / Vector3.Dot(LineForward2, -transform.up);
                     Vector3 p2 = i0 + LineForward2 * t2;
 
+                    //uvPoint= p;
                     point = p;
                     CheckContains(  true);
+                    //uvPoint= p2;
                     point = p2;
                     CheckContains(  true);
+                    //uvPoint= uv1;
                     point = i1;
                     CheckContains(   true);
+
 
                     point = p;
                     FillFacePointsCheckContains(true);
@@ -274,10 +294,13 @@ public class fracture : MonoBehaviour
                     float t = Vector3.Dot(transform.position - i0, -transform.up) / Vector3.Dot(LineForward, -transform.up);
                      var p = i0 + LineForward * t;
 
+                    //uvPoint= p;
                     point = p;
                     CheckContains( false);
+                    //uvPoint= uv1;
                     point = i1;
                     CheckContains( false);
+                    //uvPoint= uv2;
                     point = i2;
                     CheckContains( false);
 
@@ -286,10 +309,13 @@ public class fracture : MonoBehaviour
                     float t2 = Vector3.Dot(transform.position - i0, -transform.up) / Vector3.Dot(LineForward2, -transform.up);
                     var p2 =  i0 + LineForward2 * t2;
 
+                    //uvPoint= p;
                     point = p;
                     CheckContains(  false);
+                    //uvPoint= p2;
                     point = p2;
                     CheckContains( false);
+                    //uvPoint= uv1;
                     point = i1;
                     CheckContains( false);
 
@@ -340,29 +366,38 @@ public class fracture : MonoBehaviour
                     var p2 = pointB + LineForward2 * t2;
                     if (dist0 <= 0)
                     {
+                        //uvPoint= pointB;
                         point = pointB;
                        CheckContains( true);
+                        //uvPoint= p;
                         point = p;
                        CheckContains( true);
+                        //uvPoint= p2;
                         point = p2;
                        CheckContains( true);
 
                     }
                     if (dist1 <= 0)
                     {
+                        //uvPoint= p;
                         point = p;
                        CheckContains( true);
+                        //uvPoint= pointB;
                         point = pointB;
                        CheckContains( true);
+                        //uvPoint= p2;
                         point = p2;
                        CheckContains( true);
                     }
                     if (dist2 <= 0)
                     {
+                        //uvPoint= pointB;
                         point = pointB;
                        CheckContains( true);
+                        //uvPoint= p;
                         point = p;
                        CheckContains( true);
+                        //uvPoint= p2;
                         point = p2;
                        CheckContains( true);
                     }
@@ -420,30 +455,39 @@ public class fracture : MonoBehaviour
 
                     if (dist0 > 0)
                     {
+                        //uvPoint= pointB;
                         point = pointB;
                         CheckContains( false);
+                        //uvPoint= p;
                         point = p;
                         CheckContains(  false);
+                        //uvPoint= p2;
                         point = p2;
                         CheckContains( false);
 
                     }
                     if (dist1 > 0)
                     {
+                        //uvPoint= p;
                         point = p;
                         CheckContains( false);
+                        //uvPoint= pointB;
                         point = pointB;
                         CheckContains( false);
+                        //uvPoint= p2;
                         point = p2;
                         CheckContains( false);
                     
                     }
                     if (dist2 > 0)
                     {
+                        uvPoint = pointB;
                         point = pointB;
                         CheckContains( false);
+                        uvPoint = p;
                         point = p;
                         CheckContains( false);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains( false);
                     
@@ -514,34 +558,46 @@ public class fracture : MonoBehaviour
                     }
                     if (dist1 > 0)
                     {
+                        uvPoint = p;
                         point = p;
                        CheckContains( true);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains(  true);
+                        uvPoint = pointB1;
                         point = pointB1;
                        CheckContains( true);
 
+                        uvPoint = pointB1;
                         point = pointB1;
                        CheckContains( true);
+                        uvPoint = p2;
                         point = p2;
                        CheckContains( true);
+                        uvPoint = pointB2;
                         point = pointB2;
                        CheckContains( true);
                      
                     }
                     if (dist2 > 0)
                     {
+                        uvPoint = p;
                         point = p;
                        CheckContains( true);
+                        uvPoint = pointB1;
                         point = pointB1;
                        CheckContains( true);
+                        uvPoint = p2;
                         point = p2;
                        CheckContains( true);
 
+                        uvPoint = pointB1;
                         point = pointB1;
                        CheckContains( true);
+                        uvPoint = pointB2;
                         point = pointB2;
                        CheckContains( true);
+                        uvPoint = p2;
                         point = p2;
                        CheckContains( true);
                     }
@@ -620,34 +676,46 @@ public class fracture : MonoBehaviour
                     }
                     if (dist1 <= 0)
                     {
+                        uvPoint = p;
                         point = p;
                         CheckContains( false);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains( false);
+                        uvPoint = pointB1;
                         point = pointB1;
                         CheckContains( false);
 
+                        uvPoint = pointB1;
                         point = pointB1;
                         CheckContains( false);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains( false);
+                        uvPoint = pointB2;
                         point = pointB2;
                         CheckContains( false);
                                              
                     }
                     if (dist2 <= 0)
                     {
+                        uvPoint = p;
                         point = p;
                         CheckContains( false);
+                        uvPoint = pointB1;
                         point = pointB1;
                         CheckContains( false);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains( false);
 
+                        uvPoint = pointB1;
                         point = pointB1;
                         CheckContains( false);
+                        uvPoint = pointB2;
                         point = pointB2;
                         CheckContains( false);
+                        uvPoint = p2;
                         point = p2;
                         CheckContains( false);
                     }
@@ -663,7 +731,8 @@ public class fracture : MonoBehaviour
             Fill(fillFacePoints, true);
             Fill(fillFacePoints2, false);
 
-            //            UnityEngine.Debug.Log(vertices.Length + " " + triangles.Length);
+            UnityEngine.Debug.Log(vertices.Length + " " + triangles.Length);
+            UnityEngine.Debug.Log(points.Count + " " + trisList.Count);
 
             CreateMeshes(mesh.GetComponent<MeshFilter>().mesh, mesh);
 
@@ -726,20 +795,27 @@ public class fracture : MonoBehaviour
 
             if (!b.Equals(b2))
             {
-                if(firstObj) {
+                if(firstObj)
+                {
+                    uvPoint = p;
                     point = p;
                     CheckContains(firstObj);
+                    uvPoint = b;
                     point = b;
                     CheckContains(firstObj);
+                    uvPoint = b2;
                     point = b2;
                     CheckContains(firstObj);
                 }
                 else
                 {
+                    uvPoint = p;
                     point = p;
                     CheckContains(false);
+                    uvPoint = b2;
                     point = b2;
                     CheckContains(false);
+                    uvPoint = b;
                     point = b;
                     CheckContains(false);
                   
@@ -756,19 +832,25 @@ public class fracture : MonoBehaviour
         {
             if (firstObj)
             {
+                uvPoint = p;
                 point = p;
                 CheckContains(firstObj);
+                uvPoint = bb;
                 point = bb;
                 CheckContains(firstObj);
+                uvPoint = bb2;
                 point = bb2;
                 CheckContains(firstObj);
             }
             else
             {
+                uvPoint = p;
                 point = p;
                 CheckContains(false);
+                uvPoint = bb2;
                 point = bb2;
                 CheckContains(false);
+                uvPoint = bb;
                 point = bb;
                 CheckContains(false);
 
@@ -786,7 +868,7 @@ public class fracture : MonoBehaviour
         {
             verticesList.Add(item.Key);
         }
-        mesh.vertices = vertices =  verticesList.ToArray();
+        mesh.vertices = vertices =  points.ToArray();
         mesh.triangles = trisList.ToArray();
         //Vector2[] uvs = new Vector2[vertices.Length];
 
@@ -796,7 +878,7 @@ public class fracture : MonoBehaviour
         //    uvs[i] = vertices[i] * half;
         //}
 
-     
+        mesh.uv = uvs.ToArray();
         mesh.RecalculateBounds();
         mesh.RecalculateNormals();
         mesh.RecalculateTangents();
@@ -818,7 +900,7 @@ public class fracture : MonoBehaviour
         //UnityEngine.Debug.Log(verticesList.Count + " " + trisList.Count);
         //UnityEngine.Debug.Log(verticesList2.Count + " " + trisList2.Count);
 
-        meshFilter.mesh.vertices = verticesList2.ToArray();
+        meshFilter.mesh.vertices = points2.ToArray();
         meshFilter.mesh.triangles = trisList2.ToArray();
         //Vector2[] uvs2 = new Vector2[meshFilter.mesh.vertices.Length];
         //for (int i = 0; i < meshFilter.mesh.vertices.Length; i++)
@@ -826,13 +908,14 @@ public class fracture : MonoBehaviour
         //    uvs2[i] = meshFilter.mesh.vertices[i] * new Vector2(0.5f, 0.5f) ;
         //}
 
-        meshFilter.mesh.uv = uvs.ToArray();
+        meshFilter.mesh.uv = uvs2.ToArray();
 
         meshFilter.mesh.RecalculateBounds();
         meshFilter.mesh.RecalculateNormals();
         meshFilter.mesh.RecalculateTangents();
         meshCol=secondMesh.AddComponent<MeshCollider>();
         meshCol.convex = true;
+        secondMesh.GetComponent<MeshRenderer>().materials[0] = parent.GetComponent<MeshRenderer>().material;
     }
 
     public Vector3 p = Vector3.zero;
