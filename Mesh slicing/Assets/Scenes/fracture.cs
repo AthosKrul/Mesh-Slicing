@@ -51,22 +51,7 @@ public class fracture : MonoBehaviour
     {
         meshes.Remove(other.transform);
     }
-    void OnDrawGizmos() {
-        //foreach (var item in vertices)
-        //{
-        //    if(newPlane.GetDistanceToPoint(sphere.transform.TransformPoint( item)) <= 0) {
-        //        Gizmos.DrawSphere(sphere.transform.TransformPoint(item), 0.005f);
-        //    }
-        //}
-        Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(mid1, 0.005f);
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(mid2, 0.005f);
-        Gizmos.color = Color.white;
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(p, 0.02f);
-        Gizmos.color = Color.white;
-    }
+  
     public Dictionary<Vector3, int> pairs = new Dictionary<Vector3, int>();
     public Dictionary<Vector3, int> pairs2 = new Dictionary<Vector3, int>();
     public bool useExistingVertixes;
@@ -121,18 +106,58 @@ public class fracture : MonoBehaviour
     int z = 0, z2 = 0;
     void CheckContains(bool firstList) {
         if(firstList) {
-            points.Add(point);
-            uvs.Add(uvPoint);             
-            trisList.Add(z);
-            z++;
-          
+            if (!useExistingVertixes)
+            {
+                if (!pairs.ContainsKey(point))
+                {
+                    uvs.Add(uvPoint);
+                    pairs.Add(point, z);
+                    trisList.Add(z);
+                    z++;
+                }
+                else
+                {
+                    //  Debug.Log(pairs.e)
+                    trisList.Add(pairs[point]);
+                }
+
+            }
+            else
+            {
+                points.Add(point);
+                uvs.Add(uvPoint);
+                trisList.Add(z);
+                z++;
+            }
+           
+
         }
         else {
 
-            points2.Add(point);
-            uvs2.Add(uvPoint);
-            trisList2.Add(z2);
-            z2++;
+            if (!useExistingVertixes)
+            {
+                if (!pairs2.ContainsKey(point))
+                {
+                    uvs2.Add(uvPoint);
+                    pairs2.Add(point, z2);
+                    trisList2.Add(z2);
+                    z2++;
+                }
+                else
+                {
+                    //  Debug.Log(pairs.e)
+                    trisList2.Add(pairs2[point]);
+                }
+            }
+            else
+            {
+                points2.Add(point);
+                uvs2.Add(uvPoint);
+                trisList2.Add(z2);
+                z2++;
+            }
+         
+        
            
         }
     }
@@ -728,8 +753,12 @@ public class fracture : MonoBehaviour
                 #endregion
 
             }
-            Fill(fillFacePoints, true);
-            Fill(fillFacePoints2, false);
+            if (fillCutout)
+            {
+                Fill(fillFacePoints, true);
+                Fill(fillFacePoints2, false);
+
+            }
 
             UnityEngine.Debug.Log(vertices.Length + " " + triangles.Length);
             UnityEngine.Debug.Log(points.Count + " " + trisList.Count);
@@ -743,7 +772,7 @@ public class fracture : MonoBehaviour
     
     Vector3 mid1 = new Vector3();
     Vector3 mid2 = new Vector3();
-
+    public bool fillCutout = false;
     int AddTris(int z,int times) {
         for (int i = 0; i < times; i++)
         {
@@ -864,19 +893,20 @@ public class fracture : MonoBehaviour
 
         mesh.Clear();
         mesh.ClearBlendShapes();
-        foreach (var item in pairs)
+        if (useExistingVertixes)
         {
-            verticesList.Add(item.Key);
+            vertices = points.ToArray();        
         }
-        mesh.vertices = vertices =  points.ToArray();
+        else
+        {
+            foreach (var item in pairs)
+            {
+                verticesList.Add(item.Key);
+            }
+            vertices = verticesList.ToArray();
+        }
+        mesh.vertices = vertices;
         mesh.triangles = trisList.ToArray();
-        //Vector2[] uvs = new Vector2[vertices.Length];
-
-        //Vector2 half = new Vector2(0.5f, 0.5f);
-        //for (int i = 0; i < vertices.Length; i++)
-        //{
-        //    uvs[i] = vertices[i] * half;
-        //}
 
         mesh.uv = uvs.ToArray();
         mesh.RecalculateBounds();
@@ -886,6 +916,8 @@ public class fracture : MonoBehaviour
         var meshCol = parent.gameObject.AddComponent<MeshCollider>();
         meshCol.convex = true;
 
+      //  parent.GetComponent<Rigidbody>().useGravity = true;
+
         GameObject secondMesh = Instantiate( mesh2, parent.position,Quaternion.identity);
         var meshFilter = secondMesh.GetComponent<MeshFilter>();
         
@@ -893,14 +925,23 @@ public class fracture : MonoBehaviour
 
         meshFilter.mesh.ClearBlendShapes();
 
-        foreach (var item in pairs2)
-        {
-            verticesList2.Add(item.Key);
-        }
         //UnityEngine.Debug.Log(verticesList.Count + " " + trisList.Count);
         //UnityEngine.Debug.Log(verticesList2.Count + " " + trisList2.Count);
 
-        meshFilter.mesh.vertices = points2.ToArray();
+        Vector3[] vertices2;
+        if (useExistingVertixes)
+        {
+            vertices2 = points2.ToArray();
+        }
+        else
+        {
+            foreach (var item in pairs2)
+            {
+                verticesList2.Add(item.Key);
+            }
+            vertices2 = verticesList2.ToArray();
+        }
+        meshFilter.mesh.vertices = vertices2;
         meshFilter.mesh.triangles = trisList2.ToArray();
         //Vector2[] uvs2 = new Vector2[meshFilter.mesh.vertices.Length];
         //for (int i = 0; i < meshFilter.mesh.vertices.Length; i++)
