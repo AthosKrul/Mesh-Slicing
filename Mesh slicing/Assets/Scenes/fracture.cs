@@ -31,8 +31,8 @@ public class fracture : MonoBehaviour
     public List<Transform> meshes;
     public GameObject mesh2;
     UnityEngine.Plane newPlane;
-    List<int> trisList = new List<int>();
-    List<int> trisList2 = new List<int>();
+    List<int> trisList = new List<int>(5000);
+    List<int> trisList2 = new List<int>(5000);
     void Start() {
    
 
@@ -49,8 +49,8 @@ public class fracture : MonoBehaviour
         meshes.Remove(other.transform);
     }
   
-    public Dictionary<Vector3, int> pairs = new Dictionary<Vector3, int>();
-    public Dictionary<Vector3, int> pairs2 = new Dictionary<Vector3, int>();
+    public Dictionary<Vector3, int> pairs = new Dictionary<Vector3, int>(5000);
+    public Dictionary<Vector3, int> pairs2 = new Dictionary<Vector3, int>(5000);
     public bool useExistingVertixes;
     void Update() {
 
@@ -69,10 +69,10 @@ public class fracture : MonoBehaviour
     Vector3 point;
 
     //bool firstList;
-    List<Vector2> uvs = new List<Vector2>();
-    List<Vector2> uvs2 = new List<Vector2>();
-    List<Vector3> points = new List<Vector3>();
-    List<Vector3> points2 = new List<Vector3>();
+    List<Vector2> uvs = new List<Vector2>(5000);
+    List<Vector2> uvs2 = new List<Vector2>(5000);
+    List<Vector3> points = new List<Vector3>(5000);
+    List<Vector3> points2 = new List<Vector3>(5000);
     int z = 0, z2 = 0;
     void CheckContains(bool firstList) {
         if(firstList) {
@@ -146,8 +146,8 @@ public class fracture : MonoBehaviour
             }   
         }
     }
-    Dictionary<Vector3,int> fillFacePoints = new Dictionary<Vector3,int>();
-    Dictionary<Vector3,int> fillFacePoints2 = new Dictionary<Vector3,int>();
+    Dictionary<Vector3,int> fillFacePoints = new Dictionary<Vector3,int>(5000);
+    Dictionary<Vector3,int> fillFacePoints2 = new Dictionary<Vector3,int>(5000);
     Vector2[] initialUVs;
     Vector2 uvPoint;
     void FirstSliceMethod() {
@@ -156,12 +156,7 @@ public class fracture : MonoBehaviour
         {
 
             z = z2 = 0;
-            points = new List<Vector3>();
-            points2 = new List<Vector3>();
-            fillFacePoints = new Dictionary<Vector3, int>();
-            fillFacePoints2 = new Dictionary<Vector3, int>();        
-            pairs = new Dictionary<Vector3, int>();
-            pairs2 = new Dictionary<Vector3, int>();
+    
             vertices = meshTransform.GetComponent<MeshFilter>().mesh.vertices;
          
             int[] triangles = meshTransform.GetComponent<MeshFilter>().mesh.triangles;
@@ -707,12 +702,12 @@ public class fracture : MonoBehaviour
 
                 }
                 #endregion
-
+              
             }
             if (fillCutout)
             {
-                Fill(fillFacePoints, true);
-                Fill(fillFacePoints2, false);
+                FillVoid(fillFacePoints, true);
+                FillVoid(fillFacePoints2, false);
 
             }
 
@@ -910,5 +905,98 @@ public class fracture : MonoBehaviour
         Destroy(go.GetComponent<MeshCollider>());
         var meshCol = go.AddComponent<MeshCollider>();
         meshCol.convex = true;
+    }
+    Dictionary<float, Vector3> dic = new Dictionary<float, Vector3>(5000);
+    Dictionary<float, Vector3> dic2 = new Dictionary<float, Vector3>(5000);
+
+
+    public void FillVoid(Dictionary<Vector3, int> fillFacePoints, bool firstObj)
+    {
+        Vector3 centerPoint = new Vector3();
+        Vector3 currentPoint = new Vector3();
+
+        
+        for (int i = 0; i < fillFacePoints.Count; i++)
+        {
+            currentPoint = fillFacePoints.ElementAt(i).Key;
+            centerPoint += currentPoint;
+            float angle = Mathf.Atan2(currentPoint.x, currentPoint.z);
+            if (firstObj)
+            {
+
+                if (!dic.ContainsKey(angle))
+                {
+                    dic.Add(angle, currentPoint);
+                }
+            }
+            else
+            {
+
+                if (!dic2.ContainsKey(angle))
+                {
+                    dic2.Add(angle, currentPoint);
+                }
+            }
+        }
+
+        if (firstObj)
+        {
+
+            dic = dic.OrderBy(key => key.Key).ToDictionary(x => x.Key, x => x.Value);
+
+        }
+
+        else
+        {
+
+            dic2 = dic2.OrderBy(key => key.Key).ToDictionary(x => x.Key, x => x.Value);
+
+        }
+
+        centerPoint /= fillFacePoints.Count;
+
+
+        //9gag dic.length
+        if (firstObj)
+        {
+            for (int i = 0; i < dic.Count - 1; i++)
+            {
+                point = dic.Values.ElementAt(i + 1);
+                CheckContains(firstObj);
+                point = centerPoint;
+                CheckContains(firstObj);
+                point = dic.Values.ElementAt(i);
+                CheckContains(firstObj);
+            }
+
+            point = dic.Values.ElementAt(0);
+            CheckContains(firstObj);
+            point = centerPoint;
+            CheckContains(firstObj);
+            point = dic.Values.ElementAt(dic.Count - 1);
+            CheckContains(firstObj);
+        }
+        else
+        {
+            for (int i = 0; i < dic2.Count - 1; i++)
+            {
+                point = dic2.Values.ElementAt(i + 1);
+                CheckContains(firstObj);
+                point = centerPoint;
+                CheckContains(firstObj);
+                point = dic2.Values.ElementAt(i);
+                CheckContains(firstObj);
+            }
+
+            point = dic2.Values.ElementAt(0);
+            CheckContains(firstObj);
+            point = centerPoint;
+            CheckContains(firstObj);
+            point = dic2.Values.ElementAt(dic.Count - 1);
+            CheckContains(firstObj);
+        }
+
+
+
     }
 }
